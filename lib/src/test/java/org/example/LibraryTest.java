@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.*;
 
 class LibraryTest {
-    String DB_URL = "jdbc:postgresql://localhost:5433/movies";
+    String DB_URL = "jdbc:postgresql://localhost:5433/test_database";
     String DB_USER = "postgres";
     String DB_PASSWORD = "PostgreSQL";
 
@@ -39,9 +39,9 @@ class LibraryTest {
         String fileName = "";
         try {
             Connection connection = DriverManager.getConnection(
-                    "jdbc:postgresql://localhost:5433/test_database",
-                    "postgres",
-                    "PostgreSQL"          // Пароль с большой буквы!
+                    DB_URL = "jdbc:postgresql://localhost:5433/test_database",
+            DB_USER = "postgres",
+            DB_PASSWORD = "PostgreSQL"
             );
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("SELECT title FROM movies LIMIT 1");
