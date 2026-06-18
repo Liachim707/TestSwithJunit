@@ -9,7 +9,7 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import ru.productstar.tests.models.AuthResponse;
+import models.AuthResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 
