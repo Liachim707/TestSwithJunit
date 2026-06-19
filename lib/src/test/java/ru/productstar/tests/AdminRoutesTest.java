@@ -99,10 +99,8 @@ public class AdminRoutesTest {
             fail("Exception: " + e.getMessage());
         }
 
-        // 1. PATCH - обновляем описание фильма
         MediaType mediaType = MediaType.parse("application/json");
-        RequestBody body = RequestBody.create(
-                "{\"title\":\"" + filmTitle + "\",\"description\":\"new description\"}", mediaType);
+        RequestBody body = RequestBody.create("{\"id\":" + filmID + ",\"title\":\"" + filmTitle + "\"," + "\"release_date\":\"1986-03-07T00:00:00Z\"," + "\"runtime\":116,\"mpaa_rating\":\"R\"," + "\"description\":\"new description\"}", mediaType);
         Request patchReq = new Request.Builder()
                 .url("http://localhost:4000/v1/admin/movies/" + filmID)
                 .patch(body)
@@ -113,7 +111,6 @@ public class AdminRoutesTest {
             fail("Exception: " + e.getMessage());
         }
 
-        // 2. GET - читаем тот же фильм и проверяем обновление
         Request getReq = new Request.Builder()
                 .url("http://localhost:4000/v1/admin/movies/" + filmID).build();
         try {
