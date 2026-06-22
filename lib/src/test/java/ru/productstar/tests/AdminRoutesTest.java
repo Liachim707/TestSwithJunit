@@ -73,7 +73,7 @@ public class AdminRoutesTest {
 
     @Test void adminCanGetMovies() {
         Request request = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/movies").build();
+                .url("http://localhost:4000/v1/admin/test_database").build();
         try {
             String response = this.client.newCall(request).execute().body().string();
             System.out.println(response);
@@ -102,7 +102,7 @@ public class AdminRoutesTest {
         MediaType mediaType = MediaType.parse("application/json");
         RequestBody body = RequestBody.create("{\"id\":" + filmID + ",\"title\":\"" + filmTitle + "\"," + "\"release_date\":\"1986-03-07T00:00:00Z\"," + "\"runtime\":116,\"mpaa_rating\":\"R\"," + "\"description\":\"new description\"}", mediaType);
         Request patchReq = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/movies/" + filmID)
+                .url("http://localhost:4000/v1/admin/test_database/" + filmID)
                 .patch(body)
                 .build();
         try {
@@ -112,7 +112,7 @@ public class AdminRoutesTest {
         }
 
         Request getReq = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/movies/" + filmID).build();
+                .url("http://localhost:4000/v1/admin/test_database/" + filmID).build();
         try {
             String response = this.client.newCall(getReq).execute().body().string();
             System.out.println(response);
