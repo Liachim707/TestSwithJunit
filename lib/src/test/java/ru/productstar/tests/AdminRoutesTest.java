@@ -18,7 +18,7 @@ import java.sql.*;
 import com.google.gson.Gson;
 
 public class AdminRoutesTest {
-    static String DB_URL = "jdbc:postgresql://localhost:5432/movies";
+    static String DB_URL = "jdbc:postgresql://localhost:5432/test_database";
     static String DB_USER = "postgres";
     static String DB_PASSWORD = "postgres";
     static Connection connection;
