@@ -12,3 +12,4 @@ plugins {
 
 rootProject.name = 'TESTSWITHJUNIT'
 include('lib')
+include('movies:backend')
