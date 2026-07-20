@@ -4,7 +4,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,9 +27,14 @@ public class Main {
         // находим строки таблицы с информацией по книгам (включая строку с названиями столбцов - table header);
         // исключаем из них пустые строки
         List<WebElement> tableRowsIncludingHeader = driver.findElements(By.className("rt-tr"));
-        List<WebElement> filteredTableRows = tableRowsIncludingHeader.stream()
+        List filteredTableRows = tableRowsIncludingHeader.stream()
                 .filter(row -> !row.getAttribute("class").contains("-padRow"))
-                .toList();
+                .collect(Collectors.toList());
+        if (filteredTableRows.isEmpty()) {
+            System.out.println("Таблица с книгами не загрузилась!");
+            driver.quit();
+            return;
+        }
 
         // выводим на экран содержание строк таблицы;
         // начнём с table header
@@ -43,11 +51,12 @@ public class Main {
         // перейдём к информации по книгам
         filteredTableRows.stream().skip(1)
                 .map(tableRow -> {
-                    String imgSrc = tableRow.findElement(By.tagName("img")).getAttribute("src");
 
-                    WebElement bookCell = tableRow.findElement(By.tagName("a"));
-                    String bookLink = bookCell.getAttribute("href");
-                    String bookTitle = bookCell.getText();
+                    List imgElements = tableRow.findElements(By.tagName("img"));
+                    String imgSrc = imgElements.isEmpty() ? "Нет изображения" : imgElements.get(0).getAttribute("src");
+                    List bookLinkElements = tableRow.findElements(By.tagName("a"));
+                    String bookLink = bookLinkElements.isEmpty() ? "Нет ссылки" : bookLinkElements.get(0).getAttribute("href");
+                    String bookTitle = bookLinkElements.isEmpty() ? "Нет названия" : bookLinkElements.get(0).getText();
 
                     // ячейки с автором и издателем мы можем идентифицировать только по имени тега и индексу
                     final int authorCellIndex = 2;
@@ -102,6 +111,8 @@ public class Main {
         public static List<String> getAllBookUrls(WebDriver driver) {
             List<String> bookUrls = new ArrayList<>();
             driver.get("https://demoqa.com/books");
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.className("rt-tr")));
 
             List<WebElement> bookRows = driver.findElements(By.cssSelector(".rt-tbody .rt-tr-group"));
             for (WebElement row : bookRows) {
