@@ -10,9 +10,14 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import org.junit.jupiter.api.*;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DemoQaTests {
     private WebDriver driver;
@@ -68,27 +73,45 @@ public class DemoQaTests {
     }
 
     @Test
-    public void loginUser_useNonExistentUserName() {
-        // 1. Сгенерируйте несуществующий UserName: можете подобрать вручную, а можно через код, используя "UUID.randomUUID().toString();"
+    void testLoginWithNonExistentUserName() {
+        // Переход на страницу логина
+        driver.get("https://demoqa.com/login");
 
-        // 2. Заполните поле UserName сгенерированным значением
+        // Ввод несуществующего UserName и валидного пароля
+        WebElement userNameField = driver.findElement(By.id("userName"));
+        WebElement passwordField = driver.findElement(By.id("password"));
+        userNameField.sendKeys("NonExistentUser");
+        passwordField.sendKeys("P@ssw0rd");
 
-        // 3. Заполните поле Password любым значением
+        // Нажатие на кнопку логина
+        driver.findElement(By.id("login")).click();
 
-        // 4. Нажмите кнопку Login
-
-        // 5. Проверьте наличие ошибки на экране с текстом "Invalid username or password!"
+        // Проверка, что пользователь не вошел в систему (остался на странице логина)
+        assertTrue(driver.getCurrentUrl().contains("/login"),
+                "URL should contain '/login' after failed login attempt");
+        assertFalse(driver.getPageSource().contains("Welcome"),
+                "Page should not contain 'Welcome' after failed login");
     }
 
     @Test
-    public void loginUser_incorrectPassword() {
-        // 1. Заполните поле UserName значением, совпадающим со значением созданного вами пользователя
+    void testLoginWithIncorrectPassword() {
+        // Переход на страницу логина
+        driver.get("https://demoqa.com/login");
 
-        // 2. Намеренно заполните поле Password некорректным значением
+        // Ввод существующего UserName и некорректного пароля
+        WebElement userNameField = driver.findElement(By.id("userName"));
+        WebElement passwordField = driver.findElement(By.id("password"));
+        userNameField.sendKeys("m5");
+        passwordField.sendKeys("InvalidPassword123");
 
-        // 3. Нажмите кнопку Login
+        // Нажатие на кнопку логина
+        driver.findElement(By.id("login")).click();
 
-        // 4. Проверьте наличие ошибки на экране с текстом "Invalid username or password!"
+        // Проверка, что пользователь не вошел в систему (остался на странице логина)
+        assertTrue(driver.getCurrentUrl().contains("/login"),
+                "URL should contain '/login' after failed login attempt");
+        assertFalse(driver.getPageSource().contains("Welcome"),
+                "Page should not contain 'Welcome' after failed login");
     }
 
     // Задание со звёздочкой
@@ -148,7 +171,7 @@ public class DemoQaTests {
         // проверяем наличие алерта с сообщением об успешной регистрации
         Alert alert = wait.until(ExpectedConditions.alertIsPresent());
 
-        // переключаемся на алерт и проверяем наличие сообщения об успешной регистрации
+        // переключаемся на алёрт и проверяем наличие сообщения об успешной регистрации
         Assert.assertEquals(alert.getText(), "User Register Successfully.", "Алерт содержит некорректное сообщение об успешной регистрации");
 
         alert.accept();
