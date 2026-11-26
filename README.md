@@ -1,96 +1,125 @@
 # TestSwithJunit — Movies API tests
 
-## О проекте
+## Описание проекта
 
-Проект содержит автоматизированные интеграционные API-тесты для учебного приложения [Movies](https://github.com/tirzasrwn/movies). Тесты написаны на Java с использованием JUnit 5, OkHttp для HTTP-запросов, Gson для чтения JSON и PostgreSQL JDBC для подготовки и проверки тестовых данных.
+**TestSwithJunit** — учебный Java-проект с автоматизированными интеграционными тестами REST API приложения [Movies](https://github.com/tirzasrwn/movies). Тесты проверяют работу публичных и административных HTTP-эндпоинтов, а также сценарии авторизации и управления фильмами.
 
-## Что проверяют тесты
+Проект использует:
+- **Java 17** — язык и среда выполнения;
+- **JUnit 5** — написание и запуск тестов;
+- **OkHttp** — отправка HTTP-запросов к API;
+- **Gson** — обработка JSON-ответов;
+- **PostgreSQL JDBC** — подключение к базе данных для подготовки тестовых данных и проверки результата удаления;
+- **Gradle** — сборка проекта и запуск тестов.
 
-- **PublicRoutesTest** — получение списка жанров (`GET /v1/genres`) и публичного каталога фильмов (`GET /v1/movies`).
-- **AuthRoutesTest** — успешная и неуспешная авторизация, отказ в доступе к admin endpoint без токена, выход из системы (`GET /v1/logout`) и сброс refresh-cookie.
-- **AdminRoutesTest** — получение административного каталога, получение фильма по ID, обновление фильма и удаление фильма.
-- В тесте удаления фильм создаётся напрямую в PostgreSQL в Arrange, удаляется через admin API, после чего проверяется отсутствие записи в базе.
+## Что делает проект
 
-## Требования
+Тесты сгруппированы по назначению:
 
-- JDK 17 или новее.
-- PostgreSQL с базой данных, настроенной для Movies backend.
-- Запущенный Movies backend, доступный по адресу `http://localhost:4000`.
-- Gradle Wrapper, который уже находится в репозитории.
+- **PublicRoutesTest** проверяет получение списка жанров (`GET /v1/genres`) и публичного списка фильмов (`GET /v1/movies`).
+- **AuthRoutesTest** проверяет успешную и неуспешную авторизацию, запрет доступа к административному API без токена и выход из системы (`GET /v1/logout`).
+- **AdminRoutesTest** проверяет получение административного списка фильмов, получение фильма по ID, обновление и удаление фильма.
 
-## Настройка и запуск
+В тесте удаления фильм сначала создаётся напрямую в PostgreSQL в этапе Arrange, затем удаляется HTTP-запросом к административному API. После этого тест проверяет, что запись действительно отсутствует в базе данных.
 
-1. Клонируйте репозиторий:
+## Что необходимо для запуска
 
-   ```bash
-   git clone https://github.com/Liachim707/TestSwithJunit.git
-   cd TestSwithJunit
-   ```
+Перед запуском тестов подготовьте:
 
-2. Убедитесь, что PostgreSQL и Movies backend запущены. По умолчанию тесты используют:
-   - API: `http://localhost:4000/v1`
-   - PostgreSQL: `jdbc:postgresql://localhost:5433/test_database`
-   - пользователь БД: `postgres`
-   - пароль БД: `PostgreSQL`
-   - администратор API: `admin@example.com` / `secret`
+1. **JDK 17 или новее.**
+2. **PostgreSQL** с базой данных, используемой приложением Movies.
+3. Запущенный **Movies backend**, доступный по адресу `http://localhost:4000`.
+4. Gradle Wrapper, включённый в репозиторий.
 
-3. При необходимости переопределите параметры через переменные окружения:
+Тесты не запускают backend или PostgreSQL самостоятельно — эти сервисы должны быть запущены отдельно.
 
-   | Переменная | Назначение | Значение по умолчанию |
-   |---|---|---|
-   | `API_BASE_URL` | Базовый URL API, включая `/v1` | `http://localhost:4000/v1` |
-   | `DB_URL` | JDBC URL PostgreSQL | `jdbc:postgresql://localhost:5433/test_database` |
-   | `DB_USER` | Пользователь PostgreSQL | `postgres` |
-   | `DB_PASSWORD` | Пароль PostgreSQL | `PostgreSQL` |
-   | `ADMIN_EMAIL` | Email администратора | `admin@example.com` |
-   | `ADMIN_PASSWORD` | Пароль администратора | `secret` |
+## Как запустить проект
 
-   Не храните реальные пароли и секреты в Git.
+### 1. Клонировать репозиторий
 
-4. Запустите все тесты из корня проекта:
-
-   **Windows (PowerShell):**
-   ```powershell
-   .\\gradlew.bat test
-   ```
-
-   **Linux / macOS:**
-   ```bash
-   ./gradlew test
-   ```
-
-   Если Gradle установлен отдельно, можно использовать `gradle test`.
-
-## Отчёты JUnit
-
-После запуска тестов Gradle создаёт XML-отчёты, необходимые для проверки результатов:
-
-```
-lib/build/test-results/test/TEST-ru.productstar.tests.PublicRoutesTest.xml
-lib/build/test-results/test/TEST-ru.productstar.tests.AuthRoutesTest.xml
-lib/build/test-results/test/TEST-ru.productstar.tests.AdminRoutesTest.xml
+```bash
+git clone https://github.com/Liachim707/TestSwithJunit.git
+cd TestSwithJunit
 ```
 
-HTML-отчёт доступен по пути:
+### 2. Проверить настройки подключения
+
+По умолчанию тесты используют следующие параметры:
+
+| Параметр | Значение по умолчанию |
+|---|---|
+| Адрес API | `http://localhost:4000/v1` |
+| JDBC URL | `jdbc:postgresql://localhost:5433/test_database` |
+| Пользователь PostgreSQL | `postgres` |
+| Пароль PostgreSQL | `PostgreSQL` |
+| Email администратора | `admin@example.com` |
+| Пароль администратора | `secret` |
+
+Если ваши настройки отличаются, задайте переменные окружения:
+
+- `API_BASE_URL` — базовый адрес API, включая `/v1`;
+- `DB_URL` — JDBC URL базы данных;
+- `DB_USER` и `DB_PASSWORD` — учётные данные PostgreSQL;
+- `ADMIN_EMAIL` и `ADMIN_PASSWORD` — учётные данные администратора API.
+
+Не публикуйте реальные пароли и другие секреты в репозитории.
+
+### 3. Запустить тесты
+
+Выполните команду из корневой папки проекта.
+
+**Windows (PowerShell):**
+
+```powershell
+.\gradlew.bat test
+```
+
+**Linux / macOS:**
+
+```bash
+./gradlew test
+```
+
+Если Gradle установлен в системе, также можно выполнить:
+
+```bash
+gradle test
+```
+
+Gradle соберёт проект и запустит тесты из модуля `lib`.
+
+## Где посмотреть результаты
+
+После выполнения тестов Gradle сформирует JUnit XML-отчёты:
+
+```
+lib/build/test-results/test/
+```
+
+В этой папке должны появиться отчёты для тестовых классов, например:
+
+- `TEST-ru.productstar.tests.PublicRoutesTest.xml`
+- `TEST-ru.productstar.tests.AuthRoutesTest.xml`
+- `TEST-ru.productstar.tests.AdminRoutesTest.xml`
+
+HTML-отчёт находится здесь:
 
 ```
 lib/build/reports/tests/test/index.html
 ```
 
-XML-файлы появляются только после фактического запуска тестов. Перед отправкой задания приложите все XML-отчёты, созданные в `lib/build/test-results/test/`.
+Отчёты создаются после фактического запуска тестов. Для сдачи задания приложите XML-файлы, созданные в `lib/build/test-results/test/`.
 
 ## Структура тестовой части
 
 ```
 lib/
-  src/
-    main/java/models/
-      AuthResponse.java
-    test/java/ru/productstar/tests/
-      ApiTestSupport.java
-      PublicRoutesTest.java
-      AuthRoutesTest.java
-      AdminRoutesTest.java
+└── src/
+    ├── main/java/models/
+    │   └── AuthResponse.java
+    └── test/java/ru/productstar/tests/
+        ├── ApiTestSupport.java
+        ├── PublicRoutesTest.java
+        ├── AuthRoutesTest.java
+        └── AdminRoutesTest.java
 ```
-
-**Важно:** это интеграционные тесты. Команда Gradle не запускает PostgreSQL и Movies backend автоматически — сначала запустите и настройте эти сервисы.
