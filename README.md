@@ -1,16 +1,8 @@
-# TestSwithJunit — Movies API tests
+# TestSwithJunit
 
 ## Описание проекта
 
 **TestSwithJunit** — учебный Java-проект с автоматизированными интеграционными тестами REST API приложения [Movies](https://github.com/tirzasrwn/movies). Тесты проверяют работу публичных и административных HTTP-эндпоинтов, а также сценарии авторизации и управления фильмами.
-
-Проект использует:
-- **Java 17** — язык и среда выполнения;
-- **JUnit 5** — написание и запуск тестов;
-- **OkHttp** — отправка HTTP-запросов к API;
-- **Gson** — обработка JSON-ответов;
-- **PostgreSQL JDBC** — подключение к базе данных для подготовки тестовых данных и проверки результата удаления;
-- **Gradle** — сборка проекта и запуск тестов.
 
 ## Что делает проект
 
@@ -109,17 +101,3 @@ lib/build/reports/tests/test/index.html
 ```
 
 Отчёты создаются после фактического запуска тестов. Для сдачи задания приложите XML-файлы, созданные в `lib/build/test-results/test/`.
-
-## Структура тестовой части
-
-```
-lib/
-└── src/
-    ├── main/java/models/
-    │   └── AuthResponse.java
-    └── test/java/ru/productstar/tests/
-        ├── ApiTestSupport.java
-        ├── PublicRoutesTest.java
-        ├── AuthRoutesTest.java
-        └── AdminRoutesTest.java
-```
