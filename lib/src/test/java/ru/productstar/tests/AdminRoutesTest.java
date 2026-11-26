@@ -1,124 +1,155 @@
 package ru.productstar.tests;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import models.AuthResponse;
+import okhttp3.Response;
+import org.junit.jupiter.api.Test;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.*;
+class AdminRoutesTest {
 
-import com.google.gson.Gson;
+    @Test
+    void adminCanGetMovies() throws Exception {
+        String token = ApiTestSupport.adminToken();
+        Request request = ApiTestSupport.adminRequest(
+                ApiTestSupport.API_BASE_URL + "/admin/movies", token).get().build();
 
-public class AdminRoutesTest {
-    static String DB_URL = "jdbc:postgresql://localhost:5433/test_database";
-    static String DB_USER = "postgres";
-    static String DB_PASSWORD = "PostgreSQL";
-    static Connection connection;
-    OkHttpClient client;
-
-    @BeforeAll static void initDBConnection() {
-        try {
-            Class.forName("org.postgresql.Driver");
-            AdminRoutesTest.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
+        try (Response response = ApiTestSupport.HTTP.newCall(request).execute()) {
+            assertEquals(200, response.code());
+            assertNotNull(response.body());
+            JsonObject[] movies = ApiTestSupport.GSON.fromJson(
+                    response.body().string(), JsonObject[].class);
+            assertNotNull(movies);
+            assertTrue(movies.length > 0, "Административный каталог не должен быть пустым");
+            assertTrue(movies[0].has("title"));
         }
     }
 
-    @AfterAll static void closeDBConnection() {
-        try {
-            AdminRoutesTest.connection.close();
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
+    @Test
+    void adminCanGetMovieById() throws Exception {
+        String token = ApiTestSupport.adminToken();
+        int movieId = findExistingMovieId();
+
+        Request request = ApiTestSupport.adminRequest(
+                ApiTestSupport.API_BASE_URL + "/admin/movies/" + movieId, token).get().build();
+
+        try (Response response = ApiTestSupport.HTTP.newCall(request).execute()) {
+            assertEquals(200, response.code());
+            assertNotNull(response.body());
+            JsonObject payload = JsonParser.parseString(response.body().string()).getAsJsonObject();
+            assertTrue(payload.has("movie"), "Ответ должен содержать объект movie");
+            assertEquals(movieId, payload.getAsJsonObject("movie").get("id").getAsInt());
         }
     }
 
-    @BeforeEach void initHttpClient() {
-        this.client = new OkHttpClient.Builder()
-                .addInterceptor(chain -> {
-                    Request request = chain.request().newBuilder()
-                            .addHeader("Authorization", "Bearer " + this.getAccessToken())
-                            .build();
-                    return chain.proceed(request);
-                })
-                .build();
-    }
+    @Test
+    void patchMovie() throws Exception {
+        String token = ApiTestSupport.adminToken();
+        int movieId = findExistingMovieId();
 
-    String getAccessToken() {
-        OkHttpClient client = new OkHttpClient();
-        MediaType mediaType = MediaType.parse("application/json");
-        RequestBody body = RequestBody.create(
-                "{\"email\":\"admin@example.com\",\"password\":\"secret\"}", mediaType);
-        Request request = new Request.Builder()
-                .url("http://localhost:4000/v1/authenticate")
-                .post(body)
-                .build();
-        try {
-            String response = client.newCall(request).execute().body().string();
-            AuthResponse authResponse = new Gson().fromJson(response, AuthResponse.class);
-            return authResponse.accessToken;
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
-            return "";
+        String payload = """
+                {
+                  "id": %d,
+                  "title": "API test updated movie",
+                  "release_date": "1986-03-07T00:00:00Z",
+                  "runtime": 116,
+                  "mpaa_rating": "R",
+                  "description": "updated by JUnit API test",
+                  "image": ""
+                }
+                """.formatted(movieId);
+
+        Request request = ApiTestSupport.adminRequest(
+                ApiTestSupport.API_BASE_URL + "/admin/movies/" + movieId, token)
+                .patch(RequestBody.create(payload, ApiTestSupport.JSON)).build();
+
+        try (Response response = ApiTestSupport.HTTP.newCall(request).execute()) {
+            assertEquals(200, response.code());
+        }
+
+        Request getRequest = ApiTestSupport.adminRequest(
+                ApiTestSupport.API_BASE_URL + "/admin/movies/" + movieId, token).get().build();
+
+        try (Response response = ApiTestSupport.HTTP.newCall(getRequest).execute()) {
+            assertEquals(200, response.code());
+            JsonObject result = JsonParser.parseString(response.body().string()).getAsJsonObject();
+            assertEquals("updated by JUnit API test",
+                    result.getAsJsonObject("movie").get("description").getAsString());
         }
     }
 
-    @Test void adminCanGetMovies() {
-        Request request = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/test_database").build();
-        try {
-            String response = this.client.newCall(request).execute().body().string();
-            System.out.println(response);
-            assertTrue(response.contains("title"));
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
-        }
-    }
+    @Test
+    void deleteMovieCreatedInDatabaseDuringArrange() throws Exception {
+        String token = ApiTestSupport.adminToken();
+        int createdMovieId;
 
-    @Test void patchMovie() {
-        String filmTitle = "";
-        String filmID = "";
-        try {
-            Statement statement = AdminRoutesTest.connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT title, id FROM movies LIMIT 1");
-            while (resultSet.next()) {
-                filmTitle = resultSet.getString("title");
-                filmID = resultSet.getString("id");
+        // Arrange: the test record is inserted directly into PostgreSQL.
+        try (Connection connection = ApiTestSupport.openDatabase();
+             PreparedStatement insert = connection.prepareStatement("""
+                     INSERT INTO movies
+                         (title, description, release_date, runtime, mpaa_rating,
+                          created_at, updated_at, image)
+                     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+                     RETURNING id
+                     """)) {
+            insert.setString(1, "JUnit delete test " + Instant.now());
+            insert.setString(2, "Created directly in PostgreSQL for the delete test");
+            insert.setTimestamp(3,
+                    java.sql.Timestamp.from(Instant.parse("2000-01-01T00:00:00Z")));
+            insert.setInt(4, 90);
+            insert.setString(5, "PG");
+            insert.setString(6, "");
+            try (ResultSet result = insert.executeQuery()) {
+                assertTrue(result.next(), "PostgreSQL должен вернуть ID созданного фильма");
+                createdMovieId = result.getInt("id");
             }
-            System.out.println("film title:" + filmTitle);
-            System.out.println("film id:" + filmID);
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
         }
 
-        MediaType mediaType = MediaType.parse("application/json");
-        RequestBody body = RequestBody.create("{\"id\":" + filmID + ",\"title\":\"" + filmTitle + "\"," + "\"release_date\":\"1986-03-07T00:00:00Z\"," + "\"runtime\":116,\"mpaa_rating\":\"R\"," + "\"description\":\"new description\"}", mediaType);
-        Request patchReq = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/test_database/" + filmID)
-                .patch(body)
-                .build();
-        try {
-            this.client.newCall(patchReq).execute();
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
+        // Act: delete the newly inserted record through the admin API.
+        Request deleteRequest = ApiTestSupport.adminRequest(
+                ApiTestSupport.API_BASE_URL + "/admin/movies/" + createdMovieId, token)
+                .delete().build();
+
+        try (Response response = ApiTestSupport.HTTP.newCall(deleteRequest).execute()) {
+            assertEquals(200, response.code());
+        } finally {
+            // Ensure test data is removed even if the API call fails.
+            try (Connection connection = ApiTestSupport.openDatabase();
+                 PreparedStatement cleanup = connection.prepareStatement(
+                         "DELETE FROM movies WHERE id = ?")) {
+                cleanup.setInt(1, createdMovieId);
+                cleanup.executeUpdate();
+            }
         }
 
-        Request getReq = new Request.Builder()
-                .url("http://localhost:4000/v1/admin/test_database/" + filmID).build();
-        try {
-            String response = this.client.newCall(getReq).execute().body().string();
-            System.out.println(response);
-            assertTrue(response.contains("new description"));
-        } catch (Exception e) {
-            fail("Exception: " + e.getMessage());
+        // Assert: the row must no longer exist.
+        try (Connection connection = ApiTestSupport.openDatabase();
+             PreparedStatement select = connection.prepareStatement(
+                     "SELECT COUNT(*) FROM movies WHERE id = ?")) {
+            select.setInt(1, createdMovieId);
+            try (ResultSet result = select.executeQuery()) {
+                assertTrue(result.next());
+                assertEquals(0, result.getInt(1));
+            }
+        }
+    }
+
+    private int findExistingMovieId() throws Exception {
+        try (Connection connection = ApiTestSupport.openDatabase();
+             Statement statement = connection.createStatement();
+             ResultSet result = statement.executeQuery(
+                     "SELECT id FROM movies ORDER BY id LIMIT 1")) {
+            assertTrue(result.next(), "В БД должен существовать хотя бы один фильм");
+            return result.getInt("id");
         }
     }
 }
