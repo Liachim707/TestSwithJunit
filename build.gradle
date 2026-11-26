@@ -1,24 +1,17 @@
 plugins {
-    id 'java'
+    id 'base'
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
-
-repositories {
-    mavenCentral()
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 }
 
-dependencies {
-    testImplementation platform('org.junit:junit-bom:6.0.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation("org.seleniumhq.selenium:selenium-java:4.45.0")
-    testImplementation("org.testng:testng:7.12.0")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.45.0")
-}
-
-test {
-    useJUnitPlatform()
-    useTestNG()
+// Allows the required command "gradle test" (or "./gradlew test")
+// to execute the API tests located in the lib subproject.
+tasks.register('test') {
+    group = 'verification'
+    description = 'Runs all project tests, including the Movies API tests.'
+    dependsOn(':lib:test')
 }
